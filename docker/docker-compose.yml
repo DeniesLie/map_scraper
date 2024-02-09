@@ -1,0 +1,49 @@
+version: '3.8'
+name: map_scraper
+services:
+  fastapi:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "
+      cd /map_scraper/src/map_scraper/shared/infra/db
+      && alembic upgrade head
+      && cd /map_scraper/src
+      && uvicorn main:app --host 0.0.0.0 --port 80 --reload
+      "
+    volumes:
+      - ../:/map_scraper
+    ports:
+      - "8000:80"
+
+  postgres:
+    image: postgres:16.0-alpine
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/hubdb/data
+    ports:
+      - ${DB_PORT}:5432
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+
+volumes:
+  postgres_data:
