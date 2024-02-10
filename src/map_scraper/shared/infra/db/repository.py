@@ -40,8 +40,7 @@ class SqlAlchemyRepository(Generic[T]):
         result = await self.session.execute(query)
         return result.one()
 
-    async def any(self,
-                  criteria: Optional[List] = None) -> bool:
+    async def any(self, *criteria) -> bool:
         query = select(exists().where(*criteria))
         return (await self.session.execute(query)).scalar()
 

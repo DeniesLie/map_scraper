@@ -9,6 +9,9 @@ from map_scraper.exceptions import NotFoundException
 from map_scraper.maps import (
     add_maps_orm, add_maps_router
 )
+from map_scraper.users import (
+    add_users_orm, add_users_router
+)
 import map_scraper.shared.infra as infra
 
 
@@ -20,8 +23,10 @@ def use_map_scraper(app: FastAPI):
     sqlalchemy_registry = registry()
     
     add_maps_orm(sqlalchemy_registry)
-
+    add_users_orm(sqlalchemy_registry)
+    
     add_maps_router(app)
+    add_users_router(app)
     
     @app.middleware("http")
     async def error_middleware(request: Request, call_next):

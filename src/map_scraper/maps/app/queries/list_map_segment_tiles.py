@@ -2,8 +2,10 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel, conint
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from map_scraper.maps import MapSegmentTile
+from sqlalchemy import select, exists
+
+from map_scraper.exceptions import NotFoundException, UnauthorizedException
+from map_scraper.maps import MapSegmentTile, MapSegment
 from map_scraper.shared import Coordinates
 from dataclasses import dataclass
 
@@ -14,6 +16,7 @@ class ListTilesQuery(BaseModel):
     end: Coordinates
     offset: conint(ge=0)
     limit: conint(ge=1)
+    user_id: conint(ge=1) = 0
 
 
 @dataclass
@@ -29,6 +32,17 @@ class ListTilesQueryHandler:
     async def __call__(self, query: ListTilesQuery) -> List[TileResponse]:
         lat_interval = sorted((query.start.latitude, query.end.latitude))
         long_interval = sorted((query.start.longitude, query.end.longitude))
+
+        map_segment: MapSegment = (await self.db.execute(
+            select(MapSegment)
+            .where(MapSegment.id == query.map_segment_id)
+        )).scalar_one_or_none()
+
+        if map_segment is None:
+            raise NotFoundException()
+
+        if map_segment.user_id != query.user_id:
+            raise UnauthorizedException()
 
         db_query = (select(MapSegmentTile)
                     .where(MapSegmentTile.map_segment_id == query.map_segment_id)

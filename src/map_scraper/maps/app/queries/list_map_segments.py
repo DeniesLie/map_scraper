@@ -6,7 +6,7 @@ from map_scraper.maps import MapSegment
 
 
 class ListMapSegmentsQuery(BaseModel):
-    ...
+    user_id: int = 0
 
 
 class ListMapSegmentsResponse(BaseModel):
@@ -19,9 +19,10 @@ class ListMapSegmentsQueryHandler:
         self.db = db
 
     async def __call__(self, query: ListMapSegmentsQuery) -> List[ListMapSegmentsResponse]:
-        db_query = select(MapSegment.id, MapSegment.name)
-
-        res = (await self.db.execute(db_query)).all()
+        res = (await self.db.execute(
+            select(MapSegment.id, MapSegment.name)
+            .where(MapSegment.user_id == query.user_id)
+        )).all()
 
         return [
             ListMapSegmentsResponse(id=row.id, name=row.name)

@@ -28,15 +28,18 @@ class NumpyArray(TypeDecorator):
 def add_maps_orm(orm_registry: registry):
     map_segments_table = Table(
         'map_segments', orm_registry.metadata,
-        Column('id', Integer, primary_key=True, autoincrement=True),
+        Column('id', Integer, primary_key=True, autoincrement='auto'),
         Column('name', String(50), nullable=False),
-        Column('zoom', Float, nullable=False)
+        Column('zoom', Float, nullable=False),
+        Column('user_id', Integer,
+               ForeignKey('users.id', ondelete='CASCADE'),
+               nullable=False)
     )
     orm_registry.map_imperatively(
         MapSegment, map_segments_table,
         properties= {
             'zoom': map_segments_table.c.zoom,
-            'tiles': relationship(MapSegmentTile, uselist=True, cascade='all', lazy='joined'),
+            'tiles': relationship(MapSegmentTile, uselist=True, cascade='all'),
         }
     )
 

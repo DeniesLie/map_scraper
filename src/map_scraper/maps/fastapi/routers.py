@@ -1,8 +1,9 @@
-from typing import Callable, Any, List
-
+from typing import Callable, Any, List, Annotated
 import cv2
 from fastapi import FastAPI, APIRouter, Depends, Response
+
 from map_scraper.shared import Coordinates
+from map_scraper.users import User, get_current_user
 from map_scraper.maps import (
     ImportMapSegmentCommand, create_import_map_segment_command_handler,
     DeleteMapSegmentCommand, create_delete_map_segment_command_handler,
@@ -17,26 +18,32 @@ def add_maps_router(app: FastAPI):
     @router.post("/import")
     async def import_map_segment(
             request: ImportMapSegmentCommand,
+            user: Annotated[User, Depends(get_current_user)],
             handler: Callable[[ImportMapSegmentCommand], Any]
             = Depends(create_import_map_segment_command_handler)):
+        request.user_id = user.id
         return await handler(request)
 
-    @router.get("", response_model=ListMapSegmentsResponse)
+    @router.get("", response_model=List[ListMapSegmentsResponse])
     async def list_all_map_segments(
+            user: Annotated[User, Depends(get_current_user)],
             handler: Callable[[ListMapSegmentsQuery], List[ListMapSegmentsResponse]]
             = Depends(create_list_map_segments_query_handler)):
-        return await handler(ListMapSegmentsQuery())
+        query = ListMapSegmentsQuery(user_id=user.id)
+        return await handler(query)
 
     @router.delete("/{map_segment_id}")
     async def delete_map_segment(
             map_segment_id: int,
+            user: Annotated[User, Depends(get_current_user)],
             handler: Callable[[DeleteMapSegmentCommand], Any]
             = Depends(create_delete_map_segment_command_handler)):
-        command = DeleteMapSegmentCommand(map_segment_id=map_segment_id)
+        command = DeleteMapSegmentCommand(map_segment_id=map_segment_id, user_id=user.id)
         return await handler(command)
 
     @router.get("/{map_segment_id}/tiles")
     async def list_map_segment_tiles(
+            user: Annotated[User, Depends(get_current_user)],
             map_segment_id: int,
             start_lat: float, start_long: float,
             end_lat: float, end_long: float,
@@ -45,7 +52,7 @@ def add_maps_router(app: FastAPI):
             handler: Callable[[ListTilesQuery], List[TileResponse]]
             = Depends(create_list_tiles_query_handler)):
         query = ListTilesQuery(
-            map_segment_id=map_segment_id,
+            map_segment_id=map_segment_id, user_id=user.id,
             start=Coordinates(latitude=start_lat, longitude=start_long),
             end=Coordinates(latitude=end_lat, longitude=end_long),
             offset=tile_cursor, limit=1

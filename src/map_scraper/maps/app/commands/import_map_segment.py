@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Tuple
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, conint
 from geopy.distance import geodesic
 
 from map_scraper.maps import MapSegment, MapSegmentTile
@@ -68,6 +68,7 @@ class ImportMapSegmentCommand(BaseModel):
     to_coordinates: Coordinates
     segment_name: constr(min_length=1, max_length=50)
     zoom: float
+    user_id: conint(ge=1) = 0
 
 
 class ImportMapSegmentCommandHandler:
@@ -81,7 +82,8 @@ class ImportMapSegmentCommandHandler:
 
         map_segment = MapSegment(
             name=command.segment_name,
-            zoom=command.zoom
+            zoom=command.zoom,
+            user_id=command.user_id
         )
 
         zoom_m_per_px = self.map_provider.zoom_m_per_px(command.zoom)

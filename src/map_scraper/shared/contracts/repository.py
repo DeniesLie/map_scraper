@@ -26,8 +26,7 @@ class Repository(Protocol[T]):
             criteria: Optional[List] = None) -> T:
         ...
 
-    async def any(self,
-                  criteria: Optional[List] = None) -> bool:
+    async def any(self, *criteria) -> bool:
         ...
 
     def add(self, entity: T) -> None:

@@ -11,6 +11,7 @@ from sqlalchemy.orm import registry
 
 from map_scraper.config import map_scraper_config
 from map_scraper.maps import add_maps_orm
+from map_scraper.users import add_users_orm
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -35,6 +36,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 reg = registry()
 add_maps_orm(reg)
+add_users_orm(reg)
 target_metadata = reg.metadata
 
 # other values from the config, defined by the needs of env.py,

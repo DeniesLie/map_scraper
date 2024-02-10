@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import conint
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +11,9 @@ class MapScraperConfig(BaseSettings):
     db_host: str
     db_port: str
     db_url: str
-    googlemaps_api_key: str
+    auth_secret_key: str
+    auth_algorithm: str
+    access_token_expire_hours: conint(ge=1)
 
     model_config = SettingsConfigDict(env_file='.env')
 
