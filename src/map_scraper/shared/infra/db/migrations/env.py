@@ -10,8 +10,8 @@ from alembic import context
 from sqlalchemy.orm import registry
 
 from map_scraper.config import map_scraper_config
-from map_scraper.maps import add_maps_orm
-from map_scraper.users import add_users_orm
+from map_scraper.maps.infra import add_maps_orm
+from map_scraper.users.infra import add_users_orm
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

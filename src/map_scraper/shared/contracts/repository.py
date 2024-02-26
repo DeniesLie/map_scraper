@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar, Optional, List, Any, Dict
+from typing import Protocol, TypeVar, Optional, List, Sequence, Any, Dict
 
 
 T = TypeVar('T')
@@ -10,23 +10,10 @@ class Repository(Protocol[T]):
                 criteria: Optional[List] = None,
                 order_by: Optional[Dict[str, Any]] = None,
                 offset: Optional[int] = None,
-                limit: Optional[int] = None) -> List[T]:
+                limit: Optional[int] = None) -> Sequence[T]:
         ...
 
-    async def get(self, id: Any) -> Optional[T]:
-        ...
-
-    async def first(self,
-              load: Optional[List] = None,
-              criteria: Optional[List] = None) -> Optional[T]:
-        ...
-
-    async def one(self,
-            load: Optional[List] = None,
-            criteria: Optional[List] = None) -> T:
-        ...
-
-    async def any(self, *criteria) -> bool:
+    async def get(self, _id: Any) -> Optional[T]:
         ...
 
     def add(self, entity: T) -> None:

@@ -1,3 +1,7 @@
+class MapScraperException(Exception):
+    def __init__(self, error: str):
+        super().__init__(error)
+
 class NotFoundException(Exception):
     pass
 
@@ -8,4 +12,5 @@ class MapProviderException(Exception):
 
 
 class UnauthorizedException(Exception):
-    pass
+    def __init__(self, error: str = None):
+        super().__init__(error)

@@ -1,11 +1,11 @@
 from typing import Annotated
 from fastapi import Request, Depends
-from map_scraper.users import User, get_current_user
-from map_scraper.config import map_scraper_config
+from map_scraper.users.domain import User
+from map_scraper.users.fastapi import get_current_user
 from map_scraper.shared.infra import SqlAlchemyRepository
 from map_scraper.maps.infra.google_maps_provider import GoogleMapsProvider
-from map_scraper.maps import (
-    MapSegment,
+from map_scraper.maps.domain import MapSegment
+from map_scraper.maps.app import (
     ImportMapSegmentCommandHandler,
     DeleteMapSegmentCommandHandler,
     ListTilesQueryHandler,

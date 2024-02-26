@@ -1,38 +1,36 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
+import logging
 
+from map_scraper.shared.exceptions import UnauthorizedException
 from map_scraper.users.password_utils import verify_password
-from map_scraper.users import (
-    get_user_by_email
-)
+from map_scraper.users.app.queries import get_user_by_email
 
 
-class AuthenticateUserResult(BaseModel):
-    is_authenticated: bool
-    error: Optional[str] = None
+logger = logging.getLogger('map_scraper.users')
 
 
 async def authenticate_user(
         db: AsyncSession,
         email: EmailStr,
-        password: str) -> AuthenticateUserResult:
+        password: str) -> bool:
+    logger.info('started authentication %s', email)
+    logger.debug('password: %s', password)
+
     user = await get_user_by_email(db, email)
     
     if user is None:
-        return AuthenticateUserResult(
-            is_authenticated=False,
-            error="user with this email does not exist"
-        )
+        logger.warning('user %s does not exist', email)
+        raise UnauthorizedException('user with this email does not exist')
 
     is_authenticated = verify_password(
         password, user.hashed_password
     )
 
     if not is_authenticated:
-        return AuthenticateUserResult(
-            is_authenticated=False,
-            error="incorrect email or password"
-        )
+        logger.warning('incorrect email or password')
+        raise UnauthorizedException('incorrect email or password')
 
-    return AuthenticateUserResult(is_authenticated=True)
+    logger.info('user %s has been successfully authenticated', email)
+    return is_authenticated

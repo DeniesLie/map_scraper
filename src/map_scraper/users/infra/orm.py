@@ -1,7 +1,7 @@
 from sqlalchemy.orm import registry
-from sqlalchemy import Table, Column, Integer, String, Index
+from sqlalchemy import Table, Column, Integer, String
 
-from map_scraper.users import User
+from map_scraper.users.domain import User
 
 
 def add_users_orm(orm_registry: registry):

@@ -2,11 +2,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 
-from map_scraper.users import User
+
+from map_scraper.users.domain import User
+
+import logging
+
+logger = logging.getLogger('map_scraper.users')
+
 
 async def get_user_by_email(
         db: AsyncSession, 
         email: EmailStr) -> User:
-    user_query = select(User).where(User.email == email)
-    user = (await db.execute(user_query)).one_or_none()[0]
+    logger.info('started query')
+    logger.debug('query details: email: %s', email)
+
+    user: User = await db.scalar(
+        select(User).where(User.email == email)
+    )
+
+    logger.info('completed query')
     return user
+
+

@@ -3,7 +3,7 @@ from sqlalchemy.orm import registry, relationship
 from sqlalchemy import TypeDecorator
 from io import BytesIO
 import numpy as np
-from map_scraper.maps import MapSegment, MapSegmentTile
+from map_scraper.maps.domain import MapSegment, MapSegmentTile
 
 
 class NumpyArray(TypeDecorator):

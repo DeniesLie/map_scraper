@@ -1,66 +1,15 @@
-from dataclasses import dataclass
-from typing import List, Tuple
-from pydantic import BaseModel, constr, conint
-from geopy.distance import geodesic
+import logging
+from pydantic import BaseModel, conint, constr, Field
 
-from map_scraper.maps import MapSegment, MapSegmentTile
-from map_scraper.maps.contracts.maps_provider import MapsProvider
-from map_scraper.shared import Coordinates
+from map_scraper.shared.exceptions import MapProviderException
+from map_scraper.maps.contracts import MapsProvider
+from map_scraper.maps.domain import MapSegment, MapSegmentTile
+from map_scraper.shared.models import Coordinates
 from map_scraper.shared.contracts import Repository
-from map_scraper.exceptions import MapProviderException
+from map_scraper.maps.utils import calculate_tiles_grid
 
 
-@dataclass
-class MapTilesGrid:
-    tiles_width_px: int
-    tiles_height_px: int
-    coordinates: List[Tuple[float, float]]
-
-
-def calculate_tiles_grid(
-        from_coordinates: Coordinates,
-        to_coordinates: Coordinates,
-        zoom_m_per_px: float,
-        max_tile_size_px: float) -> MapTilesGrid:
-
-    if (from_coordinates.latitude == to_coordinates.latitude
-            or from_coordinates.longitude == to_coordinates.longitude):
-        raise Exception('from_coordinates and to_coordinates points must lie on different latitudes and longitudes')
-
-    if from_coordinates.latitude < to_coordinates.latitude:
-        from_coordinates.latitude, to_coordinates.latitude = to_coordinates.latitude, from_coordinates.latitude
-
-    if from_coordinates.longitude > to_coordinates.longitude:
-        from_coordinates.longitude, to_coordinates.longitude = to_coordinates.longitude, from_coordinates.longitude
-
-    lat_size_m = geodesic(
-        (from_coordinates.latitude, from_coordinates.longitude),
-        (to_coordinates.latitude, from_coordinates.longitude)
-    ).meters
-
-    long_size_m = geodesic(
-        (from_coordinates.latitude, from_coordinates.longitude),
-        (from_coordinates.latitude, to_coordinates.longitude)
-    ).meters
-
-    max_tile_size_m = max_tile_size_px * zoom_m_per_px
-
-    lat_cells = int(lat_size_m // max_tile_size_m) + 1
-    long_cells = int(long_size_m // max_tile_size_m) + 1
-
-    lat_step_degrees = (to_coordinates.latitude - from_coordinates.latitude) / lat_cells
-    long_step_degrees = (to_coordinates.longitude - from_coordinates.longitude) / long_cells
-
-    tile_size_pxs = (int(long_size_m / zoom_m_per_px / long_cells),
-                     int(lat_size_m / zoom_m_per_px / lat_cells))
-
-    tiles_coordinates = [
-        (northern_lat + lat_step_degrees / 2, western_long + long_step_degrees / 2)
-        for northern_lat in [from_coordinates.latitude + lat_step_degrees * i for i in range(lat_cells)]
-        for western_long in [from_coordinates.longitude + long_step_degrees * i for i in range(long_cells)]
-    ]
-
-    return MapTilesGrid(tile_size_pxs[0], tile_size_pxs[1], tiles_coordinates)
+logger = logging.getLogger('map_scraper.maps')
 
 
 class ImportMapSegmentCommand(BaseModel):
@@ -68,7 +17,7 @@ class ImportMapSegmentCommand(BaseModel):
     to_coordinates: Coordinates
     segment_name: constr(min_length=1, max_length=50)
     zoom: float
-    user_id: conint(ge=1) = 0
+    user_id: conint(ge=1) = Field(0, hidden_from_schema=True)
 
 
 class ImportMapSegmentCommandHandler:
@@ -79,6 +28,8 @@ class ImportMapSegmentCommandHandler:
         self.map_provider = map_provider
 
     async def __call__(self, command: ImportMapSegmentCommand):
+        logger.info('started map segment import')
+        logger.debug('command details: %s', command)
 
         map_segment = MapSegment(
             name=command.segment_name,
@@ -108,7 +59,10 @@ class ImportMapSegmentCommandHandler:
                 center_lat=tile_coords[0], center_long=tile_coords[1],
                 img=tile_res.img
             )
-
             map_segment.tiles.append(tile)
+            logger.debug('added tile (lat=%f, long=%f)',
+                      tile.center_lat, tile.center_long)
 
         self.map_segment_repo.add(map_segment)
+        logger.info("created map segment '%s'",
+                 command.segment_name)

@@ -8,7 +8,7 @@ from map_scraper.maps.domain.map_segment_tile import MapSegmentTile
 class MapSegment:
     name: str
     zoom: float
-    user_id: str
+    user_id: int
     id: int = None
     tiles: List[MapSegmentTile] = field(default_factory=list)
 

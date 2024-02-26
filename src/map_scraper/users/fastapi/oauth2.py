@@ -3,8 +3,10 @@ from fastapi.security import OAuth2PasswordBearer
 from typing import Annotated
 from jose import JWTError, jwt
 
-from map_scraper.users import User, get_user_by_email
+from map_scraper.users.domain import User
+from map_scraper.users.app import get_user_by_email
 from map_scraper.config import map_scraper_config
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 

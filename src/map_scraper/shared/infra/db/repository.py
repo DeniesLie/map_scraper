@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, Any, List, Optional, Dict
+from typing import Generic, TypeVar, Type, Any, List, Optional, Dict, Sequence
 
 from sqlalchemy import desc, select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,32 +17,12 @@ class SqlAlchemyRepository(Generic[T]):
                 criteria: Optional[List] = None,
                 order_by: Optional[Dict[str, Any]] = None,
                 offset: Optional[int] = None,
-                limit: Optional[int] = None) -> List[T]:
+                limit: Optional[int] = None) -> Sequence[T]:
         query = self._apply_query_params(load, criteria, order_by, offset, limit)
-        result = await self.session.execute(query)
-        return list(result.scalars().all())
+        return (await self.session.scalars(query)).all()
 
-    async def get(self, id: Any) -> Optional[T]:
-        return await self.session.get(self.entity_type, id)
-
-    async def first(self,
-              load: Optional[List] = None,
-              criteria: Optional[List] = None) -> Optional[T]:
-        query = self._apply_query_params(load, criteria)
-        result = await self.session.execute(query)
-        return result.first()
-
-
-    async def one(self,
-            load: Optional[List] = None,
-            criteria: Optional[List] = None) -> T:
-        query = self._apply_query_params(load, criteria)
-        result = await self.session.execute(query)
-        return result.one()
-
-    async def any(self, *criteria) -> bool:
-        query = select(exists().where(*criteria))
-        return (await self.session.execute(query)).scalar()
+    async def get(self, _id: Any) -> Optional[T]:
+        return await self.session.get(self.entity_type, _id)
 
     def add(self, entity: T) -> None:
         self.session.add(entity)

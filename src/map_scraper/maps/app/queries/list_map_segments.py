@@ -2,7 +2,11 @@ from typing import List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from map_scraper.maps import MapSegment
+import logging
+from map_scraper.maps.domain import MapSegment
+
+
+logger = logging.getLogger('map_scraper.maps')
 
 
 class ListMapSegmentsQuery(BaseModel):
@@ -19,12 +23,18 @@ class ListMapSegmentsQueryHandler:
         self.db = db
 
     async def __call__(self, query: ListMapSegmentsQuery) -> List[ListMapSegmentsResponse]:
-        res = (await self.db.execute(
+        logger.info('started query')
+        logger.debug('query details %s', query)
+
+        rows = (await self.db.execute(
             select(MapSegment.id, MapSegment.name)
             .where(MapSegment.user_id == query.user_id)
         )).all()
 
-        return [
+        res = [
             ListMapSegmentsResponse(id=row.id, name=row.name)
-            for row in res
+            for row in rows
         ]
+
+        logger.info('completed query')
+        return res

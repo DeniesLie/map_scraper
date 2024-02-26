@@ -2,12 +2,16 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel, conint
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exists
+from sqlalchemy import select
+import logging
 
-from map_scraper.exceptions import NotFoundException, UnauthorizedException
-from map_scraper.maps import MapSegmentTile, MapSegment
-from map_scraper.shared import Coordinates
+from map_scraper.shared.exceptions import NotFoundException, UnauthorizedException
+from map_scraper.maps.domain import MapSegmentTile, MapSegment
+from map_scraper.shared.models import Coordinates
 from dataclasses import dataclass
+
+
+logger = logging.getLogger('map_scraper.maps')
 
 
 class ListTilesQuery(BaseModel):
@@ -30,13 +34,16 @@ class ListTilesQueryHandler:
         self.db = db
 
     async def __call__(self, query: ListTilesQuery) -> List[TileResponse]:
+        logger.info('started query')
+        logger.debug('query details: %s', query)
+
         lat_interval = sorted((query.start.latitude, query.end.latitude))
         long_interval = sorted((query.start.longitude, query.end.longitude))
 
-        map_segment: MapSegment = (await self.db.execute(
+        map_segment: MapSegment = await self.db.scalar(
             select(MapSegment)
             .where(MapSegment.id == query.map_segment_id)
-        )).scalar_one_or_none()
+        )
 
         if map_segment is None:
             raise NotFoundException()
@@ -44,22 +51,25 @@ class ListTilesQueryHandler:
         if map_segment.user_id != query.user_id:
             raise UnauthorizedException()
 
-        db_query = (select(MapSegmentTile)
-                    .where(MapSegmentTile.map_segment_id == query.map_segment_id)
-                    .where(MapSegmentTile.center_lat.between(*lat_interval))
-                    .where(MapSegmentTile.center_long.between(*long_interval))
-                    .order_by(MapSegmentTile.center_lat.asc(), MapSegmentTile.center_long.asc())
-                    .offset(query.offset).limit(query.limit))
+        tiles = await self.db.scalars(
+            select(MapSegmentTile)
+            .where(MapSegmentTile.map_segment_id == query.map_segment_id)
+            .where(MapSegmentTile.center_lat.between(*lat_interval))
+            .where(MapSegmentTile.center_long.between(*long_interval))
+            .order_by(MapSegmentTile.center_lat.asc(), MapSegmentTile.center_long.asc())
+            .offset(query.offset).limit(query.limit)
+        )
 
-        res = (await self.db.execute(db_query)).all()
-
-        return [
+        res = [
             TileResponse(
                 coordinates=Coordinates(
-                    latitude=row[0].center_lat,
-                    longitude=row[0].center_long
+                    latitude=tile.center_lat,
+                    longitude=tile.center_long
                 ),
-                img=row[0].img
+                img=tile.img
             )
-            for row in res
+            for tile in tiles
         ]
+
+        logger.info('completed query')
+        return res
